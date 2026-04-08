@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+
+#############################################################
+# Minimal Test Harness for Students
+# This is NOT the grader.
+# It simply runs small smoke tests to help you debug locally.
+#############################################################
+
+SCRIPT="./hangMan.ghc"
+
+if [[ ! -x "$SCRIPT" ]]; then
+  echo "❌ ERROR: $SCRIPT is not executable."
+  echo "Run: chmod +x hangMan.ghc"
+  exit 1
+fi
+
+echo "=========================================="
+echo "  HangMan Student Test Harness"
+echo "  (Does NOT reflect your final grade)"
+echo "=========================================="
+echo
+
+# -----------------------------
+# Test 1: CLI usage
+# -----------------------------
+echo "[TEST 1] Checking basic CLI usage..."
+output=$($SCRIPT 2>&1)
+
+if echo "$output" | grep -qi "usage"; then
+  echo "   ✓ usage() message appears"
+else
+  echo "   ⚠ Could not detect usage() output"
+fi
+
+echo
+
+# -----------------------------
+# Test 2: Debug mode prompt
+# -----------------------------
+echo "[TEST 2] Checking debug mode (-d)..."
+expect << 'EOF'
+  spawn ./hangMan.ghc -d
+  set timeout 2
+  expect {
+    "Pick a letter:" { puts "   ✓ prompt appears in debug mode"; }
+    timeout { puts "   ⚠ prompt did not appear in debug mode"; }
+  }
+  exit
+EOF
+
+echo
+
+# -----------------------------
+# Test 3: Input validation
+# (Only looks for expected keywords,
+# not scoring or correctness.)
+# -----------------------------
+echo "[TEST 3] Checking basic input validation..."
+
+expect << 'EOF'
+  spawn ./hangMan.ghc -d
+  set timeout 2
+
+  # Send a space (should detect space error)
+  send " "
+  send "\n"
+  expect {
+    -re "❌3" { puts "   ✓ space detected (❌3)" }
+    timeout { puts "   ⚠ did not detect space error" }
+  }
+
+  # Send empty input (should detect blank)
+  send "\n"
+  expect {
+    -re "❌2" { puts "   ✓ blank input detected (❌2)" }
+    timeout { puts "   ⚠ did not detect blank input error" }
+  }
+
+  # Send multiple letters (should detect ❌4)
+  send "abc\n"
+  expect {
+    -re "❌4" { puts "   ✓ multi-character detected (❌4)" }
+    timeout { puts "   ⚠ did not detect multi-character error" }
+  }
+
+  # Send non-letter (should detect ❌5)
+  send "9\n"
+  expect {
+    -re "❌5" { puts "   ✓ non-letter detected (❌5)" }
+    timeout { puts "   ⚠ did not detect non-letter error" }
+  }
+
+  exit
+EOF
+
+echo
+
+# -----------------------------
+# Test 4: Quick letter flow (not correctness)
+# -----------------------------
+echo "[TEST 4] Sending a few letters to ensure loop works..."
+
+expect << 'EOF'
+  spawn ./hangMan.ghc -d
+  set timeout 2
+
+  send "a\n"
+  expect { -re "❌" { puts "   ✓ received expected feedback" } timeout { } }
+
+  send "z\n"
+  expect { -re "❌" { puts "   ✓ game responds to wrong guesses" } timeout { } }
+
+  puts "   (This test does NOT check correctness.)"
+
+  exit
+EOF
+
+echo
+echo "=========================================="
+echo "   Student test harness finished."
+echo "   Reminder: ONLY the official grader"
+echo "   determines your final score."
+echo "=========================================="
+

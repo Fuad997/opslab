@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+
+#############################################################
+# HangMan – Advanced Diagnostic Tool for Students
+# This script checks structural correctness, ordering,
+# block presence, and code quality patterns.
+#
+# It DOES NOT check gameplay correctness or grade you.
+# It does NOT reveal any expected behaviour from the grader.
+#############################################################
+
+SCRIPT="./hangMan.ghc"
+
+# -----------------------------------------------------------
+# Colors
+# -----------------------------------------------------------
+GREEN="\033[1;32m"
+RED="\033[1;31m"
+YELLOW="\033[1;33m"
+BLUE="\033[1;34m"
+NC="\033[0m"
+
+echo -e "${BLUE}"
+echo    "==============================================="
+echo    "     HangMan – Advanced Student Diagnostics"
+echo    "==============================================="
+echo -e "${NC}"
+
+# -----------------------------------------------------------
+# Check script exists and is executable
+# -----------------------------------------------------------
+echo -e "${BLUE}Verifying script...${NC}"
+
+if [[ ! -f "$SCRIPT" ]]; then
+  echo -e "${RED}❌ hangMan.ghc not found in current directory.${NC}"
+  exit 1
+else
+  echo -e "${GREEN}✓ File found${NC}"
+fi
+
+if [[ ! -x "$SCRIPT" ]]; then
+  echo -e "${RED}❌ hangMan.ghc is not executable.${NC}"
+  echo "Run: chmod +x hangMan.ghc"
+  exit 1
+else
+  echo -e "${GREEN}✓ Script is executable${NC}"
+fi
+
+# -----------------------------------------------------------
+# Syntax check
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Checking syntax...${NC}"
+if bash -n "$SCRIPT" &>/dev/null; then
+  echo -e "${GREEN}✓ No syntax errors detected${NC}"
+else
+  echo -e "${RED}❌ Syntax errors detected.${NC}"
+  echo "Run: bash -n hangMan.ghc"
+fi
+
+# -----------------------------------------------------------
+# Check required FUNCTION BLOCKS exist
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Checking function structure...${NC}"
+
+declare -a required_functions=(
+  "usage"
+  "incrementGuess"
+  "endGame"
+  "writeWord"
+)
+
+for fn in "${required_functions[@]}"; do
+  if grep -q "^[[:space:]]*$fn()[[:space:]]*{" "$SCRIPT"; then
+    echo -e "• $fn() ${GREEN}FOUND${NC}"
+  else
+    echo -e "• $fn() ${RED}MISSING${NC}"
+    echo -e "  ${YELLOW}Add an empty stub for this function.${NC}"
+  fi
+done
+
+# -----------------------------------------------------------
+# Check required STRUCTURAL BLOCKS exist
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Checking required structural components...${NC}"
+
+# getopts
+if grep -q "getopts" "$SCRIPT"; then
+  echo -e "• getopts block ${GREEN}FOUND${NC}"
+else
+  echo -e "• getopts block ${RED}MISSING${NC}"
+fi
+
+# case/esac
+if grep -qE 'case .* in' "$SCRIPT" && grep -q "esac" "$SCRIPT"; then
+  echo -e "• case/esac ${GREEN}FOUND${NC}"
+else
+  echo -e "• case/esac ${RED}MISSING${NC}"
+fi
+
+# shuf
+if grep -q "shuf" "$SCRIPT"; then
+  echo -e "• shuf usage ${GREEN}FOUND${NC}"
+else
+  echo -e "• shuf usage ${RED}MISSING${NC}"
+fi
+
+# parameter expansion
+if grep -Eq '\$\{[^}]+\}' "$SCRIPT"; then
+  echo -e "• parameter expansion ${GREEN}FOUND${NC}"
+else
+  echo -e "• parameter expansion ${RED}MISSING${NC}"
+fi
+
+# camelCase (heuristic)
+if grep -Eq '[a-z]+[A-Z][a-zA-Z]*=' "$SCRIPT"; then
+  echo -e "• camelCase variables ${GREEN}DETECTED${NC}"
+else
+  echo -e "• camelCase variables ${RED}NOT DETECTED${NC}"
+fi
+
+# -----------------------------------------------------------
+# Check gameplay loop presence (but not correctness)
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Checking gameplay loop presence...${NC}"
+
+if grep -q "while [[.*wrongGuesses" "$SCRIPT"; then
+  echo -e "• main gameplay while-loop ${GREEN}FOUND${NC}"
+else
+  echo -e "• main gameplay while-loop ${RED}NOT FOUND${NC}"
+  echo -e "  ${YELLOW}Hint: loop should run while wrongGuesses < maxGuesses${NC}"
+fi
+
+# -----------------------------------------------------------
+# Check for forbidden shortcuts (sed/awk/grep-based hangman)
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Checking for problematic commands...${NC}"
+
+forbidden=( "awk" "sed" "cut" "rev" "sort" "uniq" )
+found_forbidden=0
+
+for cmd in "${forbidden[@]}"; do
+  if grep -q "\b$cmd\b" "$SCRIPT"; then
+    echo -e "• $cmd ${YELLOW}USED (allowed if justified)${NC}"
+    found_forbidden=1
+  fi
+done
+
+if [[ $found_forbidden -eq 0 ]]; then
+  echo -e "${GREEN}• No suspicious shortcuts detected${NC}"
+else
+  echo -e "${YELLOW}⚠  Warning: Scripts relying exclusively on awk/sed/cut\n   for core hangman logic may lose marks if they avoid\n   required shell features.${NC}"
+fi
+
+# -----------------------------------------------------------
+# Encourage students: test script launches
+# -----------------------------------------------------------
+echo
+echo -e "${BLUE}Testing program launch...${NC}"
+
+if $SCRIPT -d &>/dev/null; then
+  echo -e "• program launches with -d ${GREEN}OK${NC}"
+else
+  echo -e "• program launch ${RED}FAILED${NC}"
+  echo -e "  ${YELLOW}Try running './hangMan.ghc -d' manually to debug.${NC}"
+fi
+
+# -----------------------------------------------------------
+# Wrap up
+# -----------------------------------------------------------
+echo
+echo -e "${GREEN}Diagnostic complete.${NC}"
+echo "This tool only checks structure, style, and required features."
+echo "It does NOT grade correctness. Only the official grader determines marks."
+echo
+
